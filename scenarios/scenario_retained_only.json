@@ -1,0 +1,4 @@
+[
+  {"delay": 0.2, "startup_id": 1, "seq": 0, "weight_kg": 0.0, "stable": true, "retain": true},
+  {"delay": 0.3, "startup_id": 1, "seq": 1, "weight_kg": 3200.0, "stable": true, "retain": true}
+]

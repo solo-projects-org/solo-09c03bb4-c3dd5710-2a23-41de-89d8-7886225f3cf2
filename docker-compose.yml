@@ -1,0 +1,47 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -t '$$SYS/#' -C 1 -W 3 -i healthcheck || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    environment:
+      WEIGH_DB_PATH: /data/weighbridge.db
+      MQTT_HOST: mosquitto
+      MQTT_PORT: "1883"
+      MQTT_TOPIC: scale/weighbridge
+      MQTT_CLIENT_ID: weighbridge-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - api_data:/data
+
+  # 模拟秤，默认不随 up 启动：
+  #   docker compose run --rm simulator --scenario scenarios/scenario_stable_first.json
+  simulator:
+    build: .
+    profiles: ["sim"]
+    depends_on:
+      - mosquitto
+    entrypoint: ["python", "-m", "simulator.simulator"]
+    command: ["--host", "mosquitto", "--scenario", "scenarios/scenario_stable_first.json"]
+    volumes:
+      - ./scenarios:/app/scenarios:ro
+
+volumes:
+  mosquitto_data:
+  api_data:
